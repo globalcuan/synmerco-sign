@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tanda Tangan Payout Synmerco</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:560px;margin:24px auto;padding:0 16px;color:#111}
+button{background:#111;color:#fff;border:0;border-radius:10px;padding:12px 18px;font-size:16px;width:100%;margin:8px 0}
+button:disabled{opacity:.4}
+textarea{width:100%;height:110px;font-family:monospace;font-size:12px}
+.addr{font-family:monospace;word-break:break-all;background:#f2f2f2;padding:8px;border-radius:8px}
+#status{margin:12px 0;font-weight:600}
+</style></head><body>
+<h2>Hubungkan Wallet Payout Synmerco</h2>
+<p>Halaman ini hanya meminta <b>tanda tangan pesan</b> (EIP-712) untuk membuktikan wallet ini milikmu. Bukan transaksi, tidak memindahkan dana, tidak ada approval token.</p>
+<p>Alamat payout yang dihubungkan:</p>
+<div class="addr">0x9D641A96E44249CB82C162400658dd982082b4dA</div>
+<div id="status">Langkah 1: hubungkan wallet.</div>
+<button id="btnConnect">Hubungkan Wallet</button>
+<button id="btnSign" disabled>Langkah 2: Tanda Tangani</button>
+<div id="result" style="display:none">
+<p><b>Signature berhasil.</b> Salin hasil di bawah ini dan kirim ke Muse di WhatsApp:</p>
+<textarea id="sig" readonly></textarea>
+<button id="btnCopy">Salin Signature</button>
+</div>
+<script>
+const EXPECTED = "0x9D641A96E44249CB82C162400658dd982082b4dA".toLowerCase();
+const TYPED = {"domain": {"name": "Synmerco", "version": "1", "chainId": 8453}, "primaryType": "WalletLink", "types": {"EIP712Domain": [{"name": "name", "type": "string"}, {"name": "version", "type": "string"}, {"name": "chainId", "type": "uint256"}], "WalletLink": [{"name": "statement", "type": "string"}, {"name": "agentDid", "type": "string"}, {"name": "wallet", "type": "address"}, {"name": "nonce", "type": "string"}]}, "message": {"statement": "Link this wallet to receive Synmerco payouts for this agent. Sign only if you run this agent.", "agentDid": "did:key:z6Mkfa2VAHDg3RPTsACfuwEFsna2Le5yHF4rvCNSy5BnMZpD", "wallet": "0x9D641A96E44249CB82C162400658dd982082b4dA", "nonce": "4e9391ef5abe448b8f70b69d1c3b580d"}};
+let account = null;
+const status = (t) => document.getElementById('status').textContent = t;
+document.getElementById('btnConnect').onclick = async () => {
+  if (!window.ethereum) { status("Wallet tidak ditemukan. Buka link ini dari browser dApp di dalam Bitget Wallet."); return; }
+  try {
+    const accs = await window.ethereum.request({method: 'eth_requestAccounts'});
+    account = accs[0];
+    if (account.toLowerCase() !== EXPECTED) { status("Alamat terhubung " + account + " — BUKAN alamat payout yang diharapkan. Ganti akun dulu."); return; }
+    status("Terhubung: " + account + ". Lanjut langkah 2.");
+    document.getElementById('btnSign').disabled = false;
+  } catch (e) { status("Gagal hubungkan: " + (e.message || e)); }
+};
+document.getElementById('btnSign').onclick = async () => {
+  try {
+    status("Menunggu tanda tangan di wallet...");
+    const sig = await window.ethereum.request({
+      method: 'eth_signTypedData_v4',
+      params: [account, JSON.stringify(TYPED)]
+    });
+    document.getElementById('sig').value = sig;
+    document.getElementById('result').style.display = 'block';
+    status("Selesai. Salin signature dan kirim ke Muse.");
+  } catch (e) { status("Tanda tangan dibatalkan/gagal: " + (e.message || e)); }
+};
+document.getElementById('btnCopy').onclick = async () => {
+  const el = document.getElementById('sig'); el.select();
+  try { await navigator.clipboard.writeText(el.value); status("Signature tersalin."); }
+  catch (e) { document.execCommand('copy'); status("Signature tersalin."); }
+};
+</script></body></html>
